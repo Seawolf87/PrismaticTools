@@ -13,9 +13,11 @@ using StardewValley.Objects;
 using StardewValley.Locations;
 using StardewValley.Tools;
 
-namespace PrismaticTools {
+namespace PrismaticTools
+{
 
-    public class ModEntry : Mod {
+    public class ModEntry : Mod
+    {
 
         public static IMonitor mon;
         public static IModHelper ModHelper;
@@ -25,7 +27,8 @@ namespace PrismaticTools {
         private int colorCycleIndex = 0;
         private List<Color> colors = new List<Color>();
 
-        public override void Entry(IModHelper helper) {
+        public override void Entry(IModHelper helper)
+        {
             mon = Monitor;
             ModHelper = helper;
 
@@ -35,9 +38,9 @@ namespace PrismaticTools {
 
             helper.ConsoleCommands.Add("ptools", "Upgrade all tools to prismatic", UpgradeTools);
 
-            SaveEvents.AfterLoad += SaveEvents_AfterLoad;
-            PlayerEvents.InventoryChanged += PlayerEvents_InventoryChanged;
-            GameEvents.EighthUpdateTick += GameEvents_EighthUpdateTick;
+            helper.Events.GameLoop.SaveLoaded += SaveEvents_SaveLoaded;
+            helper.Events.Player.InventoryChanged += PlayerEvents_InventoryChanged;
+            helper.Events.GameLoop.UpdateTicked += GameEvents_UpdateTicked;
 
             helper.Content.AssetEditors.Add(new AssetEditor());
             SprinklerInitializer.Init();
@@ -49,65 +52,94 @@ namespace PrismaticTools {
             harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
 
-        private void GameEvents_EighthUpdateTick(object sender, System.EventArgs e) {
+        private void GameEvents_UpdateTicked(object sender, UpdateTickedEventArgs e)
+        {
+            if (!e.IsMultipleOf(8))
+            {
+                return;
+            }
+
             Farmer farmer = Game1.player;
             Item item;
-            try {
+            try
+            {
                 item = farmer.Items[farmer.CurrentToolIndex];
-            }  catch (System.ArgumentOutOfRangeException) {
+            }
+            catch (System.ArgumentOutOfRangeException)
+            {
                 return;
             }
 
-            if (item == null || !(item is Object) || !((item as Object).ParentSheetIndex == PrismaticBarItem.INDEX)) {
+            if (item == null || !(item is Object) || !((item as Object).ParentSheetIndex == PrismaticBarItem.INDEX))
+            {
                 return;
             }
 
-            for (int i=0; i<farmer.currentLocation.sharedLights.Count; i++) {
-                if (farmer.currentLocation.sharedLights[i].Identifier == (int)farmer.UniqueMultiplayerID) {
-                    farmer.currentLocation.sharedLights[i].color.Value = colors[colorCycleIndex];
+            foreach (var lightKey in farmer.currentLocation.sharedLights.Keys)
+            {
+                if (farmer.currentLocation.sharedLights[lightKey].Identifier == (int)farmer.UniqueMultiplayerID)
+                {
+                    farmer.currentLocation.sharedLights[lightKey].color.Value = colors[colorCycleIndex];
                 }
             }
+            
             colorCycleIndex = (colorCycleIndex + 1) % colors.Count;
         }
 
-        public override object GetApi() {
+        public override object GetApi()
+        {
             return new PrismaticAPI();
         }
 
-        private void UpgradeTools(string command, string[] args) {
-            foreach (Item item in Game1.player.Items) {
-                if (item is Axe || item is WateringCan || item is Pickaxe || item is Hoe) {
+        private void UpgradeTools(string command, string[] args)
+        {
+            foreach (Item item in Game1.player.Items)
+            {
+                if (item is Axe || item is WateringCan || item is Pickaxe || item is Hoe)
+                {
                     (item as Tool).UpgradeLevel = 5;
                 }
             }
         }
 
         // adds lightsources to prismatic bar and sprinkler items in inventory
-        private void AddLightsToInventoryItems() {
-            if (!Config.UseSprinklersAsLamps) {
+        private void AddLightsToInventoryItems()
+        {
+            if (!Config.UseSprinklersAsLamps)
+            {
                 return;
             }
-            foreach (Item item in Game1.player.Items) {
-                if (item is Object) {
-                    if (item.ParentSheetIndex == PrismaticSprinklerItem.INDEX) {
+            foreach (Item item in Game1.player.Items)
+            {
+                if (item is Object)
+                {
+                    if (item.ParentSheetIndex == PrismaticSprinklerItem.INDEX)
+                    {
                         (item as Object).lightSource = new LightSource(LightSource.cauldronLight, new Vector2(0, 0), 2.0f, new Color(0.0f, 0.0f, 0.0f));
-                    } else if (item.ParentSheetIndex == PrismaticBarItem.INDEX) {
+                    }
+                    else if (item.ParentSheetIndex == PrismaticBarItem.INDEX)
+                    {
                         (item as Object).lightSource = new LightSource(LightSource.cauldronLight, new Vector2(0, 0), 1.0f, colors[colorCycleIndex]);
                     }
                 }
             }
         }
 
-        private void PlayerEvents_InventoryChanged(object sender, EventArgsInventoryChanged e) {
+        private void PlayerEvents_InventoryChanged(object sender, InventoryChangedEventArgs e)
+        {
             AddLightsToInventoryItems();
         }
 
-        private void SaveEvents_AfterLoad(object sender, System.EventArgs e) {
+        private void SaveEvents_SaveLoaded(object sender, SaveLoadedEventArgs e)
+        {
             // force add sprinkler recipe for people who were level 10 before installing mod
-            if (Game1.player.FarmingLevel >= PrismaticSprinklerItem.CRAFTING_LEVEL) {
-                try {
+            if (Game1.player.FarmingLevel >= PrismaticSprinklerItem.CRAFTING_LEVEL)
+            {
+                try
+                {
                     Game1.player.craftingRecipes.Add("Prismatic Sprinkler", 0);
-                } catch { }
+                }
+                catch { }
             }
 
             IndexCompatibilityFix();
@@ -115,48 +147,69 @@ namespace PrismaticTools {
         }
 
         // used to resolve asset conflicts with other mods
-        private void IndexCompatibilityFix() {
+        private void IndexCompatibilityFix()
+        {
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            foreach (GameLocation location in Game1.locations) {
-                if (location is FarmHouse) {
+            foreach (GameLocation location in Game1.locations)
+            {
+                if (location is FarmHouse)
+                {
                     // check fridge
-                    if ((location as FarmHouse).fridge.Value != null) {
-                        foreach (Item item in (location as FarmHouse).fridge.Value.items) {
-                            if (item == null) {
+                    if ((location as FarmHouse).fridge.Value != null)
+                    {
+                        foreach (Item item in (location as FarmHouse).fridge.Value.items)
+                        {
+                            if (item == null)
+                            {
                                 continue;
                             }
-                            if (item.Name.Contains("Prismatic")) {
+                            if (item.Name.Contains("Prismatic"))
+                            {
                                 SwapIndex(item);
                             }
                         }
                     }
                 }
-                foreach (Object obj in location.Objects.Values) {
+                foreach (Object obj in location.Objects.Values)
+                {
                     // check chests, signposts, furnaces, and placed sprinklers
-                    if (obj == null) {
+                    if (obj == null)
+                    {
                         continue;
                     }
 
-                    if (obj is Chest) {
-                        foreach (Item item in (obj as Chest).items) {
-                            if (item.Name.Contains("Prismatic")) {
+                    if (obj is Chest)
+                    {
+                        foreach (Item item in (obj as Chest).items)
+                        {
+                            if (item.Name.Contains("Prismatic"))
+                            {
                                 SwapIndex(item);
                             }
                         }
-                    } else if (obj is Sign) {
+                    }
+                    else if (obj is Sign)
+                    {
                         SwapIndex((obj as Sign).displayItem.Value);
-                    } else if (obj.bigCraftable.Value && obj.name.Equals("Furnace")) {
-                        if (obj.heldObject.Value != null) {
+                    }
+                    else if (obj.bigCraftable.Value && obj.name.Equals("Furnace"))
+                    {
+                        if (obj.heldObject.Value != null)
+                        {
                             SwapIndex((obj.heldObject.Value));
                         }
-                    } else if (obj.ParentSheetIndex == PrismaticBarItem.OLD_INDEX || obj.ParentSheetIndex == PrismaticSprinklerItem.OLD_INDEX) {
+                    }
+                    else if (obj.ParentSheetIndex == PrismaticBarItem.OLD_INDEX || obj.ParentSheetIndex == PrismaticSprinklerItem.OLD_INDEX)
+                    {
                         SwapIndex(obj);
                     }
                 }
             }
 
-            foreach (Item item in Game1.player.Items) {
-                if (item != null && item.Name.Contains("Prismatic")) {
+            foreach (Item item in Game1.player.Items)
+            {
+                if (item != null && item.Name.Contains("Prismatic"))
+                {
                     SwapIndex(item);
                 }
             }
@@ -164,23 +217,29 @@ namespace PrismaticTools {
             Monitor.Log($"IndexCompatibility exec time: {watch.ElapsedMilliseconds} ms", LogLevel.Trace);
         }
 
-        private void SwapIndex(Item item) {
-            if (item.ParentSheetIndex == PrismaticBarItem.OLD_INDEX) {
+        private void SwapIndex(Item item)
+        {
+            if (item.ParentSheetIndex == PrismaticBarItem.OLD_INDEX)
+            {
                 item.ParentSheetIndex = PrismaticBarItem.INDEX;
             }
-            if (item.ParentSheetIndex == PrismaticSprinklerItem.OLD_INDEX) {
+            if (item.ParentSheetIndex == PrismaticSprinklerItem.OLD_INDEX)
+            {
                 item.ParentSheetIndex = PrismaticSprinklerItem.INDEX;
             }
         }
 
-        private void InitColors() {
+        private void InitColors()
+        {
             int n = 24;
-            for(int i=0; i<n; i++) {
+            for (int i = 0; i < n; i++)
+            {
                 colors.Add(ColorFromHSV(360.0 * i / n, 1.0, 1.0));
             }
         }
 
-        private Color ColorFromHSV(double hue, double saturation, double value) {
+        private Color ColorFromHSV(double hue, double saturation, double value)
+        {
             int hi = System.Convert.ToInt32(System.Math.Floor(hue / 60)) % 6;
             double f = hue / 60 - System.Math.Floor(hue / 60);
 

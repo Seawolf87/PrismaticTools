@@ -9,13 +9,12 @@ namespace PrismaticTools.Framework {
     class BlacksmithInitializer {
 
         private static int UpgradeCost = ModEntry.Config.PrismaticToolCost;
-        private static int NumBars = 3;
 
         public static void Init() {
-            MenuEvents.MenuChanged += MenuEvents_MenuChanged1;
+            ModEntry.ModHelper.Events.Display.MenuChanged += MenuEvents_MenuChanged1;
         }
 
-        private static void MenuEvents_MenuChanged1(object sender, EventArgsClickableMenuChanged e) {
+        private static void MenuEvents_MenuChanged1(object sender, MenuChangedEventArgs e) {
             if (!(e.NewMenu is ShopMenu)) {
                 return;
             }
@@ -32,9 +31,9 @@ namespace PrismaticTools.Framework {
             Tool toolFromName4 = who.getToolFromName("Hoe");
             Tool tool;
 
-            List<Item> forSale = ModEntry.ModHelper.Reflection.GetField<List<Item>>(menu, "forSale").GetValue();
-            Dictionary<Item, int[]> stock = ModEntry.ModHelper.Reflection.GetField<Dictionary<Item, int[]>>(menu, "itemPriceAndStock").GetValue();
-
+            List<ISalable> forSale = menu.forSale;
+            Dictionary<ISalable, int[]> stock = menu.itemPriceAndStock;
+            
             if (toolFromName1 != null && toolFromName1.UpgradeLevel == 4) {
                 tool = new Axe { UpgradeLevel = 5 };
                 forSale.Add(tool);
