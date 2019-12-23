@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
 using System.Collections.Generic;
+using System.IO;
 
 namespace PrismaticTools.Framework {
     public class AssetEditor : IAssetEditor {
@@ -14,28 +15,28 @@ namespace PrismaticTools.Framework {
 
         public bool CanEdit<T>(IAssetInfo asset) {
             bool canEdit =
-                   asset.AssetNameEquals("Maps/springobjects")
-                || asset.AssetNameEquals("Data/ObjectInformation")
-                || asset.AssetNameEquals("Data/CraftingRecipes")
-                || asset.AssetNameEquals("TileSheets/tools");
+                   asset.AssetNameEquals(Path.Combine("Maps", "springobjects"))
+                || asset.AssetNameEquals(Path.Combine("Data", "ObjectInformation"))
+                || asset.AssetNameEquals(Path.Combine("Data", "CraftingRecipes"))
+                || asset.AssetNameEquals(Path.Combine("TileSheets", "tools"))
             return canEdit;
         }
 
         public void Edit<T>(IAssetData asset) {
 
-            if (asset.AssetNameEquals("Maps/springobjects")) {
-                Texture2D bar = ModEntry.ModHelper.Content.Load<Texture2D>("Assets/prismaticBar.png", ContentSource.ModFolder);
-                Texture2D sprinkler = ModEntry.ModHelper.Content.Load<Texture2D>("Assets/prismaticSprinkler.png", ContentSource.ModFolder);
+            if (asset.AssetNameEquals(Path.Combine("Maps", "springobjects")) {
+                Texture2D bar = ModEntry.ModHelper.Content.Load<Texture2D>(Path.Combine("Assets", "prismaticBar.png"), ContentSource.ModFolder);
+                Texture2D sprinkler = ModEntry.ModHelper.Content.Load<Texture2D>(Path.Combine("Assets", "prismaticSprinkler.png"), ContentSource.ModFolder);
                 Texture2D old = asset.AsImage().Data;
                 asset.ReplaceWith(new Texture2D(Game1.graphics.GraphicsDevice, old.Width, System.Math.Max(old.Height, 1200 / 24 * 16)));
                 asset.AsImage().PatchImage(old);
                 asset.AsImage().PatchImage(bar, targetArea: Rektangle(PrismaticBarItem.INDEX));
                 asset.AsImage().PatchImage(sprinkler, targetArea: Rektangle(PrismaticSprinklerItem.INDEX));
-            } else if (asset.AssetNameEquals("Data/ObjectInformation")) {
+            } else if (asset.AssetNameEquals(Path.Combine("Data", "ObjectInformation"))) {
                 asset.AsDictionary<int, string>().Data.Add(PrismaticBarItem.INDEX, $"{barName}/{PrismaticBarItem.PRICE}/{PrismaticBarItem.EDIBILITY}/{PrismaticBarItem.TYPE} {PrismaticBarItem.CATEGORY}/{barName}/{barDesc}");
                 asset.AsDictionary<int, string>().Data.Add(PrismaticSprinklerItem.INDEX, $"{sprinklerName}/{PrismaticSprinklerItem.PRICE}/{PrismaticSprinklerItem.EDIBILITY}/{PrismaticSprinklerItem.TYPE} {PrismaticSprinklerItem.CATEGORY}/{sprinklerName}/{sprinklerDesc}");
-            } else if (asset.AssetNameEquals("Data/CraftingRecipes")) {
-                IAssetDataForDictionary<string, string> oldDict = asset.AsDictionary<string, string>();
+            } else if (asset.AssetNameEquals()Path.Combine("Data", "CraftingRecipes")) {
+                iAssetDataForDictionary<string, string> oldDict = asset.AsDictionary<string, string>();
                 Dictionary<string, string> newDict = new Dictionary<string, string>();
                 // somehow the Dictionary maintains ordering, so reconstruct it with new sprinkler recipe immediately after prismatic
                 foreach (string key in oldDict.Data.Keys) {
