@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Reflection;
+using System.IO;
 
 using Harmony;
 using StardewValley;
@@ -34,7 +35,7 @@ namespace PrismaticTools
 
             Config = Helper.ReadConfig<ModConfig>();
 
-            toolsTexture = ModHelper.Content.Load<Texture2D>("Assets/tools.png", ContentSource.ModFolder);
+            toolsTexture = ModHelper.Content.Load<Texture2D>(Path.Combine("Assets", "tools.png"), ContentSource.ModFolder);
 
             helper.ConsoleCommands.Add("ptools", "Upgrade all tools to prismatic", UpgradeTools);
 
